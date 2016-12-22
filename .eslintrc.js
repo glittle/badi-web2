@@ -14,7 +14,11 @@ module.exports = {
   'rules': {
     'semi': 0,
     'no-unused-vars': 1,
-    "space-before-function-paren": 0,
+    'comma-dangle': 0,
+    'space-before-function-paren': 0,
+    'quotes': 0,
+    'no-multiple-empty-lines': 0,
+
     // allow paren-less arrow functions
     'arrow-parens': 0,
     // allow async-await

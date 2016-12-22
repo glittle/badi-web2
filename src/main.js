@@ -4,12 +4,14 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import App from './App'
 
-import Listing from './components/Listing'
-import Hello from './components/Hello'
-import Verse from './components/Verse'
+import Listing from './pages/Listing'
+import Hello from './pages/Hello'
+import Verse from './pages/Verse'
+
+import badiCalc from './scripts/badiCalc'
+import sunCalc from './scripts/sunCalc'
 
 Vue.use(VueRouter)
-// Vue.use(require('vue-moment'))
 
 const routes = [{
   path: '/listing/:whichType',
@@ -24,7 +26,7 @@ const routes = [{
 
 const router = new VueRouter({
   routes,
-  mode: 'history'
+  //mode: 'history'
 })
 
 /* eslint-disable no-new */

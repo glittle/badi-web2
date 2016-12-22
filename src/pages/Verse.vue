@@ -40,12 +40,11 @@
   }
 
 </script>
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
   .verse {
     font-size: 2em;
     padding: .5em;
-    font-family: 'Gentium Book Basic', cursive;
+    font-family: 'Gentium Book Basic', serif;
     line-height: 1.2;
   }
   
