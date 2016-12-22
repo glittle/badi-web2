@@ -20,6 +20,7 @@
 <script>
   import axios from 'axios'
   import * as shared from '../scripts/shared'
+  import * as storage from '../scripts/storage'
 
   export default {
     name: 'Setup',
@@ -34,8 +35,9 @@
         try {
           var vue = this;
           navigator.geolocation.getCurrentPosition(function (loc) {
-            vue.coords.lat = loc.coords.latitude;
-            vue.coords.long = loc.coords.longitude;
+            vue.coords.lat = storage.set('coord.lat', loc.coords.latitude);
+            vue.coords.long = storage.set('coord.long', loc.coords.longitude);
+
             // OneSignal.sendTag("latitude", settings.locationLat);
             // OneSignal.sendTag("longitude", settings.locationlng);
             vue.getLocationName();
@@ -71,7 +73,7 @@
 
             //OneSignal.sendTag("location", location);
             //OneSignal.sendTag("zoneName", moment.tz.guess());
-            vue.coords.name = location;
+            vue.coords.name = storage.set('coord.name', location);
           })
           .catch(function (error) {
             console.log(error);

@@ -2,6 +2,7 @@
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+
 import App from './App'
 
 import Home from './pages/Home'
@@ -10,7 +11,9 @@ import Verse from './pages/Verse'
 import Setup from './pages/UserSetup'
 
 import * as badi from './scripts/badiCalc'
-badi.prepareDateInfos(173)
+setTimeout(function () {
+  badi.prepareDateInfos(173)
+}, 0)
 
 Vue.use(VueRouter)
 
@@ -30,7 +33,7 @@ const routes = [{
 
 const router = new VueRouter({
   routes,
-  //mode: 'history'
+  //mode: 'history' -- can't deep link to page?
 })
 
 /* eslint-disable no-new */
