@@ -1,604 +1,177 @@
 'use strict'
 
-var _cachedDateInfos = {};
-
-import sunCalculator from './sunCalc'
-import {
-  coords
-} from './shared'
+import sunCalc from './sunCalc'
 
 const moment = require('moment-timezone');
 
-// export default function HolyDays() {
 var _nawRuzOffsetFrom21 = [];
 var _twinHolyBirthdays = [];
-var _dateInfos = null;
-
-var _dateInfosForYear = 0;
-var _msInDay = 24 * 60 * 60 * 1000; // hours*minutes*seconds*milliseconds
 
 fillDatePresets();
 
-export function prepareDateInfos(bYear) {
-  _dateInfos = dateInfosRaw();
-  _dateInfosForYear = bYear;
-
-  var cached = _cachedDateInfos[bYear];
-  if (cached) {
-    _dateInfos = cached;
-    console.log('reused for ' + bYear)
-    return _dateInfos;
+function addSunTimes(profile, answers) {
+  var coord = profile.coord;
+  if (!coord) {
+    answers.push('Sorry. I don\'t know where you are, so can\'t tell you when sunset is.');
+    return;
   }
-  console.log('prepare ' + bYear);
+  var readableFormat = 'MMM D, HH:mm';
 
-  // add fast times
-  for (var d = 1; d <= 19; d++) {
-    _dateInfos.push({
-      Type: 'Fast',
-      BDateCode: '19.' + d,
-      NameEn: 'Fast - day ' + d
-    });
+  var zoneName = profile.tzInfo.zoneName;
+  var nowTz = moment.tz(zoneName);
+  var noonTz = moment(nowTz).hour(12).minute(0).second(0);
+  var tomorrowNoonTz = moment(noonTz).add(24, 'hours');
+
+  var sun1 = sunCalc.getTimes(noonTz, coord.lat, coord.lng);
+  var sunrise1Tz = moment.tz(sun1.sunrise, zoneName)
+  var sunset1Tz = moment.tz(sun1.sunset, zoneName)
+
+  if (nowTz.isAfter(sunset1Tz)) {
+    // eve of day1 into day2
+    answers.push(`Starting Sunset: ${sunset1Tz.format(readableFormat)}`);
+
+    var sun2 = sunCalc.getTimes(tomorrowNoonTz, coord.lat, coord.lng);
+    var sunrise2Tz = moment.tz(sun2.sunrise, zoneName)
+    var sunset2Tz = moment.tz(sun2.sunset, zoneName)
+
+    if (nowTz.isBefore(sunrise2Tz)) {
+      answers.push(`Now: ${nowTz.format(readableFormat)}`);
+      answers.push(`Sunrise: ${sunrise2Tz.format(readableFormat)}`);
+    } else {
+      answers.push(`Sunrise: ${sunrise2Tz.format(readableFormat)}`);
+      answers.push(`Now: ${nowTz.format(readableFormat)}`);
+    }
+    answers.push(`Ending Sunset: ${sunset2Tz.format(readableFormat)}`);
+  } else {
+    // get prior sunset
+    var sun0 = sunCalc.getTimes(moment(noonTz).subtract(24, 'hours'), coord.lat, coord.lng);
+    var sunset0 = moment.tz(sun0.sunset, zoneName)
+
+    answers.push(`Starting Sunset: ${sunset0.format(readableFormat)}`);
+    if (nowTz.isBefore(sunrise1Tz)) {
+      answers.push(`Now: ${nowTz.format(readableFormat)}`);
+      answers.push(`Sunrise: ${sunrise1Tz.format(readableFormat)}`);
+    } else {
+      answers.push(`Sunrise: ${sunrise1Tz.format(readableFormat)}`);
+      answers.push(`Now: ${nowTz.format(readableFormat)}`);
+    }
+    answers.push(`Ending Sunset: ${sunset1Tz.format(readableFormat)}`);
+  }
+}
+
+// function getSunTimes(profile) {
+//  var offset = profile.tzInfo.serverDiff;
+//  var coord = profile.coord;
+//  var noon = new Date();
+//  noon.setHours(12 + offset, 0, 0, 0);
+//
+//  var sunTimes = sunCalc.getTimes(noon, coord.lat, coord.lng);
+//  addHours(sunTimes.sunrise, offset);
+//  addHours(sunTimes.sunset, offset);
+//
+//  // times are right for the user, but ignore the timezone!
+//  return sunTimes;
+// }
+
+function addTodayInfoToAnswers(profile, answers) {
+  var zoneName = profile.tzInfo.zoneName;
+  var nowTz = moment.tz(zoneName);
+
+  var coord = profile.coord;
+  var bDateInfo = getBDateInfo(nowTz, coord, zoneName);
+  var bDate = bDateInfo.bDate;
+
+  //  var noon = new Date(now.getTime());
+  //  noon.setHours(12, 0, 0, 0);
+  //  var sun = sunCalc.getTimes(noon, coord.lat, coord.lng);
+  //  addHours(sun.sunset, offset);
+
+  var nowHours = nowTz.hours();
+  var greeting;
+  if (nowHours >= 5 && nowHours <= 10) {
+    greeting = (`Good morning, ${profile.first_name}.`);
+  } else if (nowHours >= 19 && nowHours <= 22) {
+    greeting = (`Good evening, ${profile.first_name}.`);
+  } else {
+    greeting = (`Hello, ${profile.first_name}.`);
   }
 
-  //    // add today
-  //    var bNow = getBDate(_now);
-  //    if (bNow.y == bYear) {
-  //      _dateInfos.push(
-  //        {
-  //          Type: 'Today', BMonthDay: bNow, NameEn: 'Today',
-  //          Time: ('0' + _now.getHours()).slice(-2) + ('0' + _now.getMinutes()).slice(-2)
-  //        }
-  //      );
-  //      //log(_dateInfos[_dateInfos.length-1]);
+  answers.push(greeting + ` Today is ${monthMeaning[bDate.m]} / ${monthAr[bDate.m]} ${bDate.d} in the Wondrous calendar!`);
+
+  // (${monthMeaning[bDate.d] })
+
+  //  console.log('local now: ' + nowTz.format())
+  //  console.log('start of day: ' + bDateInfo.startingSunset.format());
+
+  var age = nowTz.diff(bDateInfo.startingSunset, 'minute');
+  console.log(age);
+  if (age >= 0 && age < 5) {
+    answers.push(`It just started with sunset at ${bDateInfo.startingSunset.format('HH:mm')}!`);
+  } else if (bDate.eve) {
+    answers.push(`It started with sunset at ${bDateInfo.startingSunset.format('HH:mm')}!`);
+  } else {
+    answers.push(`It lasts until sunset at ${bDateInfo.endingSunset.format('HH:mm')}.`);
+  }
+  //
+  //  if (bDateInfo.endingSunset) {
+  //    var endingSunset = bDateInfo.endingSunset;
+  //    var nowWhen = moment(nowTz).format('HHmm');
+  //    console.log(nowWhen);
+  //    var sunsetWhen = moment(endingSunset).format('HHmm');
+  //    console.log(sunsetWhen);
+  //    if (nowWhen == sunsetWhen) {
+  //      answers.push(`It just started with sunset at ${moment(endingSunset).format('HH:mm')}!`);
+  //    } else {
+  //      answers.push(`It lasts until sunset at ${moment(endingSunset).format('HH:mm')}.`);
   //    }
-
-  for (var i = 0; i < _dateInfos.length; i++) {
-    var dateInfo = _dateInfos[i];
-
-    if (dateInfo.UntilYear && bYear > dateInfo.UntilYear) {
-      _dateInfos.splice(i, 1);
-      i--;
-      continue;
-    }
-    if (dateInfo.FromYear && bYear < dateInfo.FromYear) {
-      _dateInfos.splice(i, 1);
-      i--;
-      continue;
-    }
-
-
-    if (dateInfo.BDateCode) {
-      dateInfo.BMonthDay = splitToBMonthDay(dateInfo.BDateCode);
-    }
-
-    if (dateInfo.BDateCodeTo) {
-      dateInfo.BMonthDayTo = splitToBMonthDay(dateInfo.BDateCodeTo);
-    }
-
-    var bm = makeBMonthDay(dateInfo.MonthNum, 1);
-
-    if (dateInfo.Type === 'M') {
-      dateInfo.BMonthDay = bm;
-      dateInfo.BMonthDayTo = makeBMonthDay(dateInfo.MonthNum, 19);
-    }
-
-    var special = dateInfo.Special;
-    if (special) {
-      var specialParts = special.split('.');
-      var specialPartB = specialParts[1];
-      switch (specialParts[0]) {
-        case 'THB':
-          var firstDayCode = _twinHolyBirthdays[bYear];
-          if (firstDayCode) {
-            dateInfo.BMonthDay = splitToBMonthDay(firstDayCode);
-            if (specialPartB === '2') {
-              dateInfo.BMonthDay.d++;
-              if (dateInfo.BMonthDay.d === 20) {
-                dateInfo.BMonthDay.m++;
-                dateInfo.BMonthDay.d = 1;
-              }
-            }
-            dateInfo.BDateCode = dateInfo.BMonthDay.m + '.' + dateInfo.BMonthDay.d;
-          } else {
-            console.log('Twin Holy Birthdays unknown for year ' + bYear);
-            console.log(dateInfo);
-            dateInfo.BMonthDay = makeBMonthDay(12, 2);
-          }
-          break;
-
-        case 'AYYAM':
-          dateInfo.BMonthDay = makeBMonthDay(0, 1);
-
-          var firstDayOfAyyamiHa = new Date(getGregorianDate(bYear, 18, 19).getTime());
-          firstDayOfAyyamiHa.setDate(firstDayOfAyyamiHa.getDate() + 1);
-
-          var lastDayOfAyyamiHa = new Date(getGregorianDate(bYear, 19, 1).getTime());
-          lastDayOfAyyamiHa.setDate(lastDayOfAyyamiHa.getDate() - 1);
-          // log('last #2')
-          // log(lastAyyamiHa);
-          var numDaysInAyyamiHa = 1 + Math.round(Math.abs((firstDayOfAyyamiHa.getTime() - lastDayOfAyyamiHa.getTime()) / _msInDay));
-          dateInfo.BMonthDayTo = makeBMonthDay(0, numDaysInAyyamiHa);
-
-          dateInfo.GYearOffset = 1;
-
-          break;
-
-        case 'JAN1':
-          var jan1 = getGregorianDate(bYear, 17, 1); // start with a date just after jan1
-          jan1.setDate(1);
-          dateInfo.GDate = jan1;
-          dateInfo.GYearOffset = 1;
-
-          var sharaf1 = getGregorianDate(bYear, 16, 1);
-          if (sharaf1 < jan1) {
-            var day = 33 - sharaf1.getDate();
-            dateInfo.BMonthDay = makeBMonthDay(16, day);
-          } else if (sharaf1.getTime() === jan1.getTime()) {
-            dateInfo.BMonthDay = makeBMonthDay(16, 1);
-          } else {
-            // may be possible in extreme cases
-            dateInfo.BMonthDay = makeBMonthDay(15, 20 - daysBetween(jan1, sharaf1));
-          }
-
-          break;
-      }
-    }
-
-    if (dateInfo.BMonthDay.m > 16) {
-      dateInfo.GYearOffset = 1;
-    }
-
-    dateInfo.gYear = 1843 +
-      +bYear +
-      +(dateInfo.GYearOffset || 0);
-
-    if (!dateInfo.GDate) {
-      dateInfo.GDate = getGDateYBDate(bYear, dateInfo.BMonthDay);
-    }
-
-    if (dateInfo.BMonthDayTo) {
-      dateInfo.GDateTo = getGDateYBDate(bYear, dateInfo.BMonthDayTo);
-    }
-
-    if (!dateInfo.BDateCode) {
-      dateInfo.BDateCode = bm.m + '.' + bm.d;
-    }
-
-    dateInfo.Sort = (dateInfo.BMonthDay.m === 0 ? 1850 : dateInfo.BMonthDay.m * 100) + dateInfo.BMonthDay.d;
-  }
-
-  _dateInfos.sort(function (a, b) {
-    // try{
-    // if(a.BMonthDay.m == 19){
-    // if(a.Sort == b.Sort) debugger;
-    // }
-    // }catch(e){
-    // log(e);
-    // log(a);
-    // }
-    if (!b.BMonthDay) {
-      return -1;
-    }
-    if (!a.BMonthDay) {
-      return 1;
-    }
-
-    if (a.Sort < b.Sort) {
-      return -1;
-    }
-    if (a.Sort > b.Sort) {
-      return 1;
-    }
-
-    // same date
-    if (a.Type === 'M') {
-      // month first
-      return -1;
-    }
-    if (b.Type === 'M') {
-      // month first
-      return 1;
-    }
-    if (a.Type === 'OtherRange') {
-      return -1;
-    }
-    if (b.Type === 'OtherRange') {
-      return 1;
-    }
-    return 0;
-  });
-
-  _cachedDateInfos[bYear] = _dateInfos;
-  return _dateInfos;
+  //  } else {
+  //    answers.push(`It started with sunset at ${moment(bDateInfo.startingSunset).format('HH:mm')}.`);
+  //  }
 }
 
-function getUpcoming(di, numToAdd) {
-  var targetDate = moment(moment(di.frag1).format('YYYY-MM-DD')).toDate(); // clone and lose timezone
-  if (_dateInfosForYear !== di.bYear) {
-    prepareDateInfos(di.bYear);
-  }
-  var added = 0;
-  var upcoming = [];
-  var dateInfoLength = _dateInfos.length;
-  var targetDateInfoNum = 0;
-  var abort = 0;
-  while (added < numToAdd || abort > 365) {
-    abort++;
-
-    if (targetDateInfoNum >= dateInfoLength) {
-      prepareDateInfos(di.bYear + 1);
-      dateInfoLength = _dateInfos.length;
-      if (dateInfoLength === 0) {
-        break; // didn't get any!
-      }
-      targetDateInfoNum = 0;
-    }
-
-    var dateInfo = _dateInfos[targetDateInfoNum];
-
-    if (moment(dateInfo.GDate).format('YYYY-MM-DD') < moment(targetDate).format('YYYY-MM-DD')) {
-      // move on
-    } else {
-      if (dateInfo.Type === 'M' ||
-        dateInfo.Type.slice(0, 1) === 'H' ||
-        dateInfo.Type === 'OtherRange' && dateInfo.Special && dateInfo.Special.slice(0, 5) === 'AYYAM'
-      ) {
-        upcoming.push(dateInfo);
-        // log(dateInfo);
-        added++;
-        targetDate.setDate(1 + targetDate.getDate());
-      }
-    }
-    targetDateInfoNum++;
-  }
-
-  return upcoming;
-}
-
-function dateInfosRaw() {
-  return [
-    /* fields
-       Type - M (Month),HS (Holy Day standard),HO (Holy Day other),OtherDay,OtherRange
-       NameEn - English name
-       NameAr - Arabic name
-       MonthNum - Badi month number
-       BDateCode - MM.DD month and day in Badi calendar (calculated for Month entries)
-       BDateCodeTo - last day of a range - MM.DD month and day in Badi calendar (calculated for Month entries)
-       UntilYear - Badi year this day is in effect until
-       FromYear - Badi year this day is in effect from
-    */
-    {
-      Type: 'M',
-      NameEn: 'Splendor',
-      NameAr: 'Bah&aacute;',
-      MonthNum: 1
-    }, {
-      Type: 'M',
-      NameEn: 'Glory',
-      NameAr: 'Jal&aacute;l',
-      MonthNum: 2
-    }, {
-      Type: 'M',
-      NameEn: 'Beauty',
-      NameAr: 'Jam&aacute;l',
-      MonthNum: 3
-    }, {
-      Type: 'M',
-      NameEn: 'Grandeur',
-      NameAr: '`Azamat',
-      MonthNum: 4
-    }, {
-      Type: 'M',
-      NameEn: 'Light',
-      NameAr: 'N&uacute;r',
-      MonthNum: 5
-    }, {
-      Type: 'M',
-      NameEn: 'Mercy',
-      NameAr: 'Rahmat',
-      MonthNum: 6
-    }, {
-      Type: 'M',
-      NameEn: 'Words',
-      NameAr: 'Kalim&aacute;t',
-      MonthNum: 7
-    }, {
-      Type: 'M',
-      NameEn: 'Perfection',
-      NameAr: 'Kam&aacute;l',
-      MonthNum: 8
-    }, {
-      Type: 'M',
-      NameEn: 'Names',
-      NameAr: "Asm&aacute;'",
-      MonthNum: 9
-    }, {
-      Type: 'M',
-      NameEn: 'Might',
-      NameAr: '`Izzat',
-      MonthNum: 10
-    }, {
-      Type: 'M',
-      NameEn: 'Will',
-      NameAr: 'Mash&iacute;yyat',
-      MonthNum: 11
-    }, {
-      Type: 'M',
-      NameEn: 'Knowledge',
-      NameAr: '`Ilm',
-      MonthNum: 12
-    }, {
-      Type: 'M',
-      NameEn: 'Power',
-      NameAr: 'Qudrat',
-      MonthNum: 13
-    }, {
-      Type: 'M',
-      NameEn: 'Speech',
-      NameAr: 'Qawl',
-      MonthNum: 14
-    }, {
-      Type: 'M',
-      NameEn: 'Questions',
-      NameAr: "Mas&aacute;'&iacute;l",
-      MonthNum: 15
-    }, {
-      Type: 'M',
-      NameEn: 'Honor',
-      NameAr: 'Sharaf',
-      MonthNum: 16
-    }, {
-      Type: 'M',
-      NameEn: 'Sovereignty',
-      NameAr: 'Sult&aacute;n',
-      MonthNum: 17
-    }, {
-      Type: 'M',
-      NameEn: 'Dominion',
-      NameAr: 'Mulk',
-      MonthNum: 18
-    }, {
-      Type: 'M',
-      NameEn: 'Loftiness',
-      NameAr: "`Al&aacute;'",
-      MonthNum: 19
-    },
-
-    {
-      Type: 'HS',
-      BDateCode: '1.1',
-      NameEn: 'HolyDay_NawRuz'
-    }, {
-      Type: 'HS',
-      BDateCode: '2.13',
-      NameEn: 'HolyDay_Ridvan1',
-      Time: '1500S',
-      TimeReason: '3 pm Standard time'
-    }, {
-      Type: 'HS',
-      BDateCode: '3.2',
-      NameEn: 'HolyDay_Ridvan9'
-    }, {
-      Type: 'HS',
-      BDateCode: '3.5',
-      NameEn: 'HolyDay_Ridvan12'
-    }, {
-      Type: 'HS',
-      BDateCode: '4.13',
-      NameEn: "HolyDay_AscBaha",
-      Time: '0300S',
-      TimeReason: '3 am Standard time'
-    },
-
-    {
-      Type: 'HS',
-      UntilYear: 171,
-      BDateCode: '4.7',
-      NameEn: 'HolyDay_DeclBab',
-      Time: 'SS2',
-      TimeReason: 'about 2 hours after sunset'
-    }, {
-      Type: 'HS',
-      FromYear: 172,
-      BDateCode: '4.8',
-      NameEn: 'HolyDay_DeclBab',
-      Time: 'SS2',
-      TimeReason: 'about 2 hours after sunset'
-    },
-
-    {
-      Type: 'HS',
-      UntilYear: 171,
-      BDateCode: '6.16',
-      NameEn: 'HolyDay_Martyrdom',
-      Time: '1200S',
-      TimeReason: 'Noon Standard time'
-    }, {
-      Type: 'HS',
-      FromYear: 172,
-      BDateCode: '6.17',
-      NameEn: 'HolyDay_Martyrdom',
-      Time: '1200S',
-      TimeReason: 'Noon Standard time'
-    },
-
-    {
-      Type: 'HS',
-      UntilYear: 171,
-      BDateCode: '12.5',
-      NameEn: 'HolyDay_BirthBab'
-    }, {
-      Type: 'HS',
-      UntilYear: 171,
-      BDateCode: '13.9',
-      NameEn: "HolyDay_BirthBaha"
-    }, {
-      Type: 'HS',
-      FromYear: 172,
-      Special: 'THB.1',
-      NameEn: 'HolyDay_BirthBab'
-    }, {
-      Type: 'HS',
-      FromYear: 172,
-      Special: 'THB.2',
-      NameEn: "HolyDay_BirthBaha"
-    },
-
-    {
-      Type: 'HO',
-      BDateCode: '14.4',
-      NameEn: 'HolyDay_Covenant'
-    }, {
-      Type: 'HO',
-      BDateCode: '14.6',
-      NameEn: "HolyDay_AscAbdul",
-      Time: '0100S',
-      TimeReason: '1 am Standard time'
-    }
-
-    // { Type: 'OtherRange', BDateCode: '2.13', BDateCodeTo: '3.5', NameEn: 'FestivalRidvan' },
-    // { Type: 'OtherRange', Special: 'AYYAM.Intercalary', NameAr: 'Ayyám-i-Há', NameEn: 'Intercalary' },
-
-    // { Type: 'OtherDay', BDateCode: '2.13', NameEn: 'Annual Meeting and Election' },
-    // { Type: 'OtherDay', Special: 'JAN1', NameEn: 'Start of Gregorian Year ' }
-  ];
-};
-
-// date utilities //////////////////////////////////////////
-function splitToBMonthDay(code) {
-  // split code to {m: d:}
-  var split = code.split('.');
-  return {
-    m: +split[0],
-    d: +split[1]
-  };
-}
-
-function makeBMonthDay(month, day) {
-  // combine numbers into object
-  return {
-    m: +month,
-    d: +day
-  };
-};
-
-function getGDateYBDate(bYear, bMonthDay) {
-  if (!bMonthDay || !bMonthDay.d) {
-    return '?3?';
-  }
-  return getGregorianDate(bYear, bMonthDay.m, bMonthDay.d);
-};
-
-function getGregorianDate(bYear, bMonth, bDay, autoFix) {
-  // convert bDate to gDate
-  if (bMonth < 0 || typeof bMonth === 'undefined') {
-    if (autoFix) {
-      bMonth = 1;
-    } else {
-      throw new BadiException(`bMonth=${bMonth}`);
-    }
-  }
-  if (bMonth > 19) {
-    if (autoFix) {
-      bMonth = 19;
-    } else {
-      throw new BadiException(`bMonth=${bMonth}`);
-    }
-  }
-  if (bDay < 1 || !bDay) {
-    if (autoFix) {
-      bDay = 1;
-    } else {
-      throw new BadiException(`bDay=${bDay}`);
-    }
-  }
-  if (bDay > 19) {
-    if (autoFix) {
-      bDay = 19;
-    } else {
-      throw new BadiException(`bDay=${bDay}`);
-    }
-  }
-  var answer;
-
-  var gYear = bYear + 1843;
-
-  switch (bMonth) {
-    case 0:
-      if (bMonth === 0) {
-        var numDaysInAyyamiHa = daysInAyyamiHa(bYear);
-        if (bDay > numDaysInAyyamiHa) {
-          if (autoFix) {
-            bDay = numDaysInAyyamiHa;
-          } else {
-            // throw 'invalid Badi date';
-            return false;
-          }
-        }
-      }
-      answer = copyAndAddDays(getGregorianDate(bYear, 18, 19), bDay);
-      break;
-
-    case 19:
-      var nextNawRuz = getNawRuz(gYear + 1, true);
-      var firstDayOfLoftiness = copyAndAddDays(nextNawRuz, -19);
-
-      answer = copyAndAddDays(firstDayOfLoftiness, bDay - 1);
-      break;
-
-    default:
-      var nawRuz = getNawRuz(gYear, true);
-      // var beforeMidnightOffset = relationToMidnight == RelationToMidnight.bDay_BeforeSunset_Frag2 ? 1 : 0;
-      answer = copyAndAddDays(nawRuz, (bMonth - 1) * 19 + bDay - 1);
-      break;
-  }
-
-  // answer has no time, and is for the frag2 part of the Badi day
-
-  return answer;
-};
+// function getUserNowTime(serverDiff) {
+//  var now = new Date();
+//  if (serverDiff) {
+//    now.setHours(now.getHours() + serverDiff);
+//  }
+//  return now;
+// }
 
 
-function daysInAyyamiHa(bYear) {
-  var firstDayOfAyyamiHa = copyAndAddDays(getGregorianDate(bYear, 18, 19), 1);
-  var lastDayOfAyyamiHa = copyAndAddDays(getGregorianDate(bYear, 19, 1), -1);
+var getBDateInfo = function (nowTz, coord, zoneName) {
+  var noonTz = moment(nowTz).hour(12).minute(0).second(0);
 
-  return daysBetween(firstDayOfAyyamiHa, lastDayOfAyyamiHa);
-}
+  var sun1 = sunCalc.getTimes(noonTz, coord.lat, coord.lng);
 
+  //  console.log('local now ' + nowTz.format());
+  //  console.log('local noon ' + noonTz.format());
+  //  console.log(sun1);
+  var sunsetTz = moment.tz(sun1.sunset, zoneName)
 
-var getBDate = function (gSourceDate) {
-  var sourceDate = new Date(gSourceDate);
-  var pmSunset = new Date(sourceDate);
-  pmSunset.setHours(12);
-  pmSunset = sunCalculator.getTimes(pmSunset, coords.lat, coords.long).sunset;
-  //    else {
-  //      log('unknown sunset - ' + sunCalcReady + ' ' + latReady);
-  //      pmSunset.setHours(18,30,0,0);
-  //    }
-  var afterSunset = false;
-  if (sourceDate.getTime() >= pmSunset.getTime()) {
-    afterSunset = true;
-  }
-  // strip off the time
-  sourceDate.setHours(12, 0, 0, 0, 0);
+  //  console.log('local sunset ' + sunsetTz.format());
+
+  var afterSunset = nowTz.isSameOrAfter(sunsetTz, 'minute');
+
   if (afterSunset) {
-    // after sunset? do for following day
-    sourceDate.setDate(sourceDate.getDate() + 1);
+    //    console.log('after sunset');
+    noonTz.add(24, 'hours');
   }
-  var gYear = sourceDate.getFullYear();
+  //  console.log('noon of target day ' + noonTz.format());
+
+
+  var gYear = noonTz.year();
   var gDayOfNawRuz = getNawRuz(gYear, true);
   var gDayLoftiness1 = copyAndAddDays(gDayOfNawRuz, -19);
 
-  var bYear = gYear - (sourceDate >= gDayOfNawRuz ? 1843 : 1844);
+  var bYear = gYear - (noonTz >= gDayOfNawRuz ? 1843 : 1844);
   var bMonth, bDay;
 
-  var isBeforeLoftiness = sourceDate < gDayLoftiness1;
+  var isBeforeLoftiness = noonTz < gDayLoftiness1;
   if (isBeforeLoftiness) {
     // back: Jan --> end of AyyamiHa
     var gDayLoftiness1LastYear = copyAndAddDays(getNawRuz(gYear - 1, true), -19);
 
-    var daysAfterLoftiness1LastYear = Math.round((sourceDate - gDayLoftiness1LastYear) / 864e5);
+    var daysAfterLoftiness1LastYear = Math.round((noonTz - gDayLoftiness1LastYear) / 864e5);
     var numMonthsFromLoftinessLastYear = Math.floor(daysAfterLoftiness1LastYear / 19);
 
     bDay = 1 + daysAfterLoftiness1LastYear - numMonthsFromLoftinessLastYear * 19;
@@ -609,7 +182,7 @@ var getBDate = function (gSourceDate) {
     }
   } else {
     // forward: Loftiness --> Dec
-    var bDaysAfterLoftiness1 = Math.round((sourceDate - gDayLoftiness1) / 864e5);
+    var bDaysAfterLoftiness1 = Math.round((noonTz - gDayLoftiness1) / 864e5);
     var bNumMonthsFromLoftiness = Math.floor(bDaysAfterLoftiness1 / 19);
 
     bDay = 1 + bDaysAfterLoftiness1 - bNumMonthsFromLoftiness * 19;
@@ -620,17 +193,75 @@ var getBDate = function (gSourceDate) {
     }
   }
 
+  var sun0 = !afterSunset ? sunCalc.getTimes(moment(noonTz).subtract(24, 'hours'), coord.lat, coord.lng) : null;
+  var sun2 = afterSunset ? sunCalc.getTimes(moment(noonTz).add(24, 'hours'), coord.lat, coord.lng) : null;
+
   return {
-    y: bYear,
-    m: bMonth,
-    d: bDay,
-    eve: afterSunset
+    bDate: {
+      y: bYear,
+      m: bMonth,
+      d: bDay,
+      eve: afterSunset
+    },
+    startingSunset: afterSunset ? sunsetTz : moment.tz(sun0.sunset, zoneName),
+    sunrise: afterSunset ? moment.tz(sun2.sunrise, zoneName) : moment.tz(sun1.sunrise, zoneName),
+    endingSunset: afterSunset ? moment.tz(sun2.sunset, zoneName) : sunsetTz
   };
 };
 
+function getNawRuz(gYear, frag2DateOnly) {
+  // get NawRuz for this gregorian year
+  var nawRuz = new Date(
+    gYear,
+    2, // 0 based
+    (frag2DateOnly ? 21 : 20) + (_nawRuzOffsetFrom21[gYear - 1843] || 0),
+    12, // default to noon
+    0,
+    0,
+    0
+  );
 
-// =============================================================
-// table of Naw Ruz dates
+  if (frag2DateOnly) {
+    return nawRuz;
+  }
+
+  var eveSunset = new Date(nawRuz);
+  //  if (typeof sunCalculator != 'undefined') {
+  nawRuz = sunCalc.getTimes(eveSunset, _locationLat, _locationLong).sunset;
+  //  } else {
+  //    // default to 6:30pm
+  //    eveSunset.setHours(18, 30, 0, 0);
+  //  }
+  return nawRuz;
+};
+
+
+function daysInAyyamiHa(bYear) {
+  var firstDayOfAyyamiHa = copyAndAddDays(getGregorianDate(bYear, 18, 19), 1);
+  var lastDayOfAyyamiHa = copyAndAddDays(getGregorianDate(bYear, 19, 1), -1);
+
+  return daysBetween(firstDayOfAyyamiHa, lastDayOfAyyamiHa);
+}
+
+function copyAndAddDays(oldDate, daysOffset) {
+  var d = new Date(oldDate);
+  d.setDate(d.getDate() + daysOffset);
+  return d;
+}
+
+function daysBetween(d1, d2) {
+  return 1 + Math.round(Math.abs((d1.getTime() - d2.getTime()) / 864e5));
+};
+
+function addDays(d, days) {
+  d.setDate(d.getDate() + days);
+}
+
+function addHours(d, hours) {
+  d.setHours(d.getHours() + hours);
+}
+
+
 function fillDatePresets() {
   _nawRuzOffsetFrom21 = {
     // by default and historically, on March 21. If not, year is listed here with the offset... 173 is March 20
@@ -2304,87 +1935,13 @@ function fillDatePresets() {
   };
 }
 
-//  var _lastYearDefined = 1000;
-//  var _lastTwinHolyBirthdayDefined = 1000;
+var monthMeaning = "Intercalary Days,Splendor,Glory,Beauty,Grandeur,Light,Mercy,Words,Perfection,Names,Might,Will,Knowledge,Power,Speech,Questions,Honor,Sovereignty,Dominion,Loftiness".split(',');
+var monthAr = "Ayyám-i-Há,Bahá,Jalál,Jamál,`Azamat,Núr,Rahmat,Kalimát,Kamál,Asmá’,`Izzat,Mashíyyat,`Ilm,Qudrat,Qawl,Masá'il,Sharaf,Sultán,Mulk,`Alá’".split(',');
+var gMonthLong = "January,February,March,April,May,June,July,August,September,October,November,December".split(',');
 
-// =============================================================
 
-function getNawRuz(gYear, frag2DateOnly) {
-  // get NawRuz for this gregorian year
-  var nawRuz = new Date(
-    gYear,
-    2, // 0 based
-    (frag2DateOnly ? 21 : 20) + (_nawRuzOffsetFrom21[gYear - 1843] || 0),
-    12, // default to noon
-    0,
-    0,
-    0
-  );
-
-  if (frag2DateOnly) {
-    return nawRuz;
-  }
-
-  var eveSunset = new Date(nawRuz);
-  if (typeof sunCalculator !== 'undefined') {
-    nawRuz = sunCalculator.getTimes(eveSunset, coords.lat, coords.long).sunset;
-  } else {
-    // default to 6:30pm
-    eveSunset.setHours(18, 30, 0, 0);
-  }
-  return nawRuz;
+module.exports = {
+  addSunTimes: addSunTimes,
+  addTodayInfoToAnswers: addTodayInfoToAnswers
+    //  getSunTimes: getSunTimes
 };
-
-function isAfterNawRuz(d) {
-  return d.getTime() >= getNawRuz(d.getFullYear()).getTime();
-};
-
-// make these available to the browser
-module.export = {
-  getNawRuz: getNawRuz,
-  getUpcoming: getUpcoming,
-  getGDate: getGregorianDate,
-  getBDate: getBDate,
-  daysInAyyamiHa: daysInAyyamiHa,
-  prepareDateInfos: prepareDateInfos,
-  isAfterNawRuz: isAfterNawRuz,
-  // extras
-  getNawRuzFromDate: function (d) {
-    return getNawRuz(d.getFullYear());
-  },
-  getBadiYear: function (d) {
-    return d.getFullYear() - 1843 - (isAfterNawRuz(d) ? 0 : 1);
-  }
-};
-// };
-
-// helpers for holyDays
-// function dayOfYear(d) {
-//   var j1 = new Date(d);
-//   j1.setMonth(0, 0);
-//   return Math.round((d - j1) / 8.64e7);
-// };
-
-// function inStandardTime(d) {
-//   var jan = new Date(d.getFullYear(), 0, 1);
-//   return jan.getTimezoneOffset() === d.getTimezoneOffset();
-// };
-
-function copyAndAddDays(oldDate, daysOffset) {
-  var d = new Date(oldDate);
-  d.setDate(d.getDate() + daysOffset);
-  return d;
-}
-
-function daysBetween(d1, d2) {
-  return 1 + Math.round(Math.abs((d1.getTime() - d2.getTime()) / 864e5));
-};
-
-// function addDays(d, days) {
-//   d.setDate(d.getDate() + days);
-// }
-
-function BadiException(message) {
-  this.message = message;
-  this.name = "BadiCalcException";
-}

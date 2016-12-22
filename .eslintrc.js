@@ -18,6 +18,7 @@ module.exports = {
     'space-before-function-paren': 0,
     'quotes': 0,
     'no-multiple-empty-lines': 0,
+    'spaced-comment': 0,
 
     // allow paren-less arrow functions
     'arrow-parens': 0,

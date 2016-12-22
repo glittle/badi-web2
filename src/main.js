@@ -4,12 +4,13 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import App from './App'
 
+import Home from './pages/Home'
 import Listing from './pages/Listing'
-import Hello from './pages/Hello'
 import Verse from './pages/Verse'
+import Setup from './pages/UserSetup'
 
-import badiCalc from './scripts/badiCalc'
-import sunCalc from './scripts/sunCalc'
+import * as badi from './scripts/badiCalc'
+badi.prepareDateInfos(173)
 
 Vue.use(VueRouter)
 
@@ -18,10 +19,13 @@ const routes = [{
   component: Listing
 }, {
   path: '/',
-  component: Hello
+  component: Home
 }, {
   path: '/verse',
   component: Verse
+}, {
+  path: '/setup',
+  component: Setup
 }]
 
 const router = new VueRouter({

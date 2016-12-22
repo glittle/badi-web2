@@ -1,27 +1,45 @@
 <template>
-  <div>
-    <h1>{{ msg }}</h1>
-    <h2>My first .vue</h2>
-    <h2>Show {{ $route.params.whichType }}</h2>
-    <input type=range min=1 max=19 v-model="month">
-    <div>{{month}}</div>
+  <div class="Page1">
+    <p>List of Holy Days, Feasts and other events</p>
+    <select size=2 multiple v-model="listFilter">
+      <option value="HS">Holy Days</option>
+      <option value="M">Months</option>
+    </select>
+    <div v-for="item in filteredList">
+      {{item.Type}} {{item.NameEn}} <span v-html="item.NameAr"></span> {{item.BMonthDay.d}}
+    </div>
   </div>
 </template>
 <script>
+  import * as badi from '../scripts/badiCalc'
   export default {
+    name: 'Page1',
+    created: function () {
+      this.getDateInfos(173);
+    },
     data() {
       return {
-        msg: 'Welcome to Your Vue.js App',
-        month: 5
+        listFilter: ['HS'],
+        num: 0,
+        list: []
+      }
+    },
+    computed: {
+      filteredList: function () {
+        return this.list.filter(item => this.listFilter.includes(item.Type));
+      }
+    },
+    methods: {
+      getDateInfos: function (year) {
+        var info = badi.prepareDateInfos(year);
+        this.num = info.length;
+        this.list = info;
       }
     }
   }
 
 </script>
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-  body {
-    background-color: red;
-  }
+
 
 </style>
