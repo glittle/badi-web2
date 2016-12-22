@@ -11,7 +11,6 @@
  Glen - Moon and other unused calcs removed. 
 */
 
-
 'use strict';
 
 // shortcuts for easier to read formulas
@@ -19,9 +18,7 @@
 var PI = Math.PI,
   sin = Math.sin,
   cos = Math.cos,
-  tan = Math.tan,
   asin = Math.asin,
-  atan = Math.atan2,
   acos = Math.acos,
   rad = PI / 180;
 
@@ -51,19 +48,9 @@ function toDays(date) {
 
 var e = rad * 23.4397; // obliquity of the Earth
 
-function rightAscension(l, b) {
-  return atan(sin(l) * cos(e) - tan(b) * sin(e), cos(l));
-}
-
 function declination(l, b) {
   return asin(sin(b) * cos(e) + cos(b) * sin(e) * sin(l));
 }
-
-//function azimuth(H, phi, dec)  { return atan(sin(H), cos(H) * sin(phi) - tan(dec) * cos(phi)); }
-//function altitude(H, phi, dec) { return asin(sin(phi) * sin(dec) + cos(phi) * cos(dec) * cos(H)); }
-//
-//function siderealTime(d, lw) { return rad * (280.16 + 360.9856235 * d) - lw; }
-//
 
 // general sun calculations
 
@@ -78,18 +65,6 @@ function eclipticLongitude(M) {
 
   return M + C + P + PI;
 }
-
-//function sunCoords(d) {
-//
-//    var M = solarMeanAnomaly(d),
-//        L = eclipticLongitude(M);
-//
-//    return {
-//        dec: declination(L, 0),
-//        ra: rightAscension(L, 0)
-//    };
-//}
-//
 
 var SunCalc = {};
 
@@ -136,7 +111,7 @@ function getSetJ(h, lw, phi, dec, n, M, L) {
 
 // calculates sun times for a given date and latitude/longitude
 module.exports = {
-  getTimes: function getTimes(date, lat, lng) {
+  getTimes: function (date, lat, lng) {
 
     var lw = rad * -lng,
       phi = rad * lat,

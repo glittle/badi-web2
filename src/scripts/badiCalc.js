@@ -7,8 +7,6 @@ const moment = require('moment-timezone');
 var _nawRuzOffsetFrom21 = [];
 var _twinHolyBirthdays = [];
 
-const sunCalcReady = false;
-
 fillDatePresets();
 
 function addSunTimes(profile, answers) {
@@ -61,7 +59,7 @@ function addSunTimes(profile, answers) {
   }
 }
 
-//function getSunTimes(profile) {
+// function getSunTimes(profile) {
 //  var offset = profile.tzInfo.serverDiff;
 //  var coord = profile.coord;
 //  var noon = new Date();
@@ -73,7 +71,7 @@ function addSunTimes(profile, answers) {
 //
 //  // times are right for the user, but ignore the timezone!
 //  return sunTimes;
-//}
+// }
 
 function addTodayInfoToAnswers(profile, answers) {
   var zoneName = profile.tzInfo.zoneName;
@@ -100,7 +98,7 @@ function addTodayInfoToAnswers(profile, answers) {
 
   answers.push(greeting + ` Today is ${monthMeaning[bDate.m]} / ${monthAr[bDate.m]} ${bDate.d} in the Wondrous calendar!`);
 
-  //(${monthMeaning[bDate.d] })
+  // (${monthMeaning[bDate.d] })
 
   //  console.log('local now: ' + nowTz.format())
   //  console.log('start of day: ' + bDateInfo.startingSunset.format());
@@ -131,17 +129,16 @@ function addTodayInfoToAnswers(profile, answers) {
   //  }
 }
 
-//function getUserNowTime(serverDiff) {
+// function getUserNowTime(serverDiff) {
 //  var now = new Date();
 //  if (serverDiff) {
 //    now.setHours(now.getHours() + serverDiff);
 //  }
 //  return now;
-//}
+// }
 
 
 var getBDateInfo = function (nowTz, coord, zoneName) {
-
   var noonTz = moment(nowTz).hour(12).minute(0).second(0);
 
   var sun1 = sunCalc.getTimes(noonTz, coord.lat, coord.lng);
@@ -230,7 +227,7 @@ function getNawRuz(gYear, frag2DateOnly) {
 
   var eveSunset = new Date(nawRuz);
   //  if (typeof sunCalculator != 'undefined') {
-  nawRuz = sunCalculator.getTimes(eveSunset, _locationLat, _locationLong).sunset;
+  nawRuz = sunCalc.getTimes(eveSunset, _locationLat, _locationLong).sunset;
   //  } else {
   //    // default to 6:30pm
   //    eveSunset.setHours(18, 30, 0, 0);
@@ -266,7 +263,6 @@ function addHours(d, hours) {
 
 
 function fillDatePresets() {
-
   _nawRuzOffsetFrom21 = {
     // by default and historically, on March 21. If not, year is listed here with the offset... 173 is March 20
     // can be 0, -1, -2? and will never change by more than 1 day between years
@@ -1102,7 +1098,7 @@ function fillDatePresets() {
   };
 
 
-  // =============================================================  
+  // =============================================================
   // table of Twin Holy birthday dates
   _twinHolyBirthdays = {
     // first of the two days, in Badi date code
