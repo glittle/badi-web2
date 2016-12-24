@@ -1,4 +1,4 @@
-var path = './pages/'
+var folder = './pages/'
 
 // import Home from './pages/Home'
 // import Listing from './pages/Listing'
@@ -6,10 +6,10 @@ var path = './pages/'
 // import UserSetup from './pages/UserSetup'
 
 const components = [
-  require(path + 'Home'),
-  require(path + 'Listing'),
-  require(path + 'Verse'),
-  require(path + 'UserSetup')
+  require(folder + 'Home'),
+  require(folder + 'Listing'),
+  require(folder + 'Verse'),
+  require(folder + 'UserSetup')
 ]
 
 const routes = components.map(function (c) {
