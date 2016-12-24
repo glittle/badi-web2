@@ -1,13 +1,15 @@
-import Home from './pages/Home'
-import Listing from './pages/Listing'
-import Verse from './pages/Verse'
-import UserSetup from './pages/UserSetup'
+var path = './pages/'
+
+// import Home from './pages/Home'
+// import Listing from './pages/Listing'
+// import Verse from './pages/Verse'
+// import UserSetup from './pages/UserSetup'
 
 const components = [
-  Home,
-  Listing,
-  Verse,
-  UserSetup
+  require(path + 'Home'),
+  require(path + 'Listing'),
+  require(path + 'Verse'),
+  require(path + 'UserSetup')
 ]
 
 const routes = components.map(function (c) {
