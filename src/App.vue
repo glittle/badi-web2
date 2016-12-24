@@ -1,12 +1,39 @@
 <template>
-  <div id="app">
-    <router-link to="/">Home</router-link>
-    <router-link to="/Listing/HD">Listing</router-link>
-    <router-link to="/Verse">Verse</router-link>
-    <router-link to="/Setup">Setup</router-link>
-    <router-view></router-view>
-  </div>
+  <v-app top-navbar>
+    <header>
+      <v-navbar class="green">
+        <v-navbar-logo>Navbar</v-navbar-logo>
+        <v-navbar-items :items="items"></v-navbar-items>
+      </v-navbar>
+    </header>
+    <main>
+      <v-sidebar id="x" height="50vh" v-bind:items="items"></v-sidebar>
+      <v-sidebar id="y" drawer>
+        <v-sidebar-items v-bind:items="items"></v-sidebar>
+      </v-sidebar>
+      <v-content>
+        <v-container>
+          <router-view></router-view>
+        </v-container>
+      </v-content>
+    </main>
+  </v-app>
 </template>
+<script>
+  import routeList from './routes'
+
+  export default {
+    data() {
+      return {
+        items: routeList.menu
+      }
+    },
+    mounted() {
+      this.$vuetify.init()
+    }
+  }
+
+</script>
 <style>
   #app {
     font-family: 'Avenir', Helvetica, Arial, sans-serif;

@@ -4,14 +4,14 @@
     <h2>Location</h2>
     <div class="section">
       <div>
-        Where are you now?
-        <button v-on:click="getLocation">Learn</button>
-        <button v-on:click="openMap">Show on a Map</button>
+        Where are you now? 
+        <button v-on:click="getLocation" class="btn btn--raised btn--small primary">Learn</button>
+        <button v-on:click="openMap" class="btn btn--raised btn--small">Show on a Map</button>
       </div>
       <p><span>Latitude</span><input type="number" min="-80" max="80" step="any" v-model="coords.lat"></p>
       <p><span>Longitude</span><input type="number" min="-180" max="180" step="any" v-model="coords.long"></p>
       <p><span>Name</span><input type="text" v-model="coords.name">
-        <button v-on:click="getLocationName">Lookup</button>
+        <button v-on:click="getLocationName" class="btn btn--raised btn--small">Lookup</button>
       </p>
     </div>
     <h2>Language</h2>
@@ -27,6 +27,8 @@
     created() {},
     data() {
       return {
+        path: 'setup',
+        title: 'How should it work?',
         coords: shared.coords
       }
     },

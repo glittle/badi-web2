@@ -8,9 +8,13 @@
   </div>
 </template>
 <script>
+  // import bus from '../mixins/busSubUnsub'
   export default {
+    // mixins: [bus],
     data() {
       return {
+        path: '', //home
+        title: 'Home is Here!',
         msg: 'Welcome to Your Vue.js App',
         month: 5
       }

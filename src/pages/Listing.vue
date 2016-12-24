@@ -19,6 +19,8 @@
     },
     data() {
       return {
+        path: 'listing',
+        title: 'The Listing',
         listFilter: ['HS'],
         num: 0,
         list: []
