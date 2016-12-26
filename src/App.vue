@@ -3,7 +3,7 @@
     <header>
       <v-navbar class="green">
         <v-navbar-logo>Navbar</v-navbar-logo>
-        <v-navbar-items :items="items"></v-navbar-items>
+        <v-chip>16 Questions 173</v-chip>
       </v-navbar>
     </header>
     <main>

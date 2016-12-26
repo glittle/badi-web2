@@ -6,6 +6,7 @@ var folder = './pages/'
 // import UserSetup from './pages/UserSetup'
 
 const components = [
+  // this is their order in the menus
   require(folder + 'Home'),
   require(folder + 'Listing'),
   require(folder + 'Verse'),
