@@ -1,23 +1,25 @@
 <template>
-  <v-app top-navbar>
-    <header>
-      <v-navbar class="green">
-        <v-navbar-logo>Navbar</v-navbar-logo>
-        <v-chip>16 Questions 173</v-chip>
-      </v-navbar>
-    </header>
-    <main>
-      <v-sidebar id="x" height="50vh" v-bind:items="items"></v-sidebar>
-      <v-sidebar id="y" drawer>
-        <v-sidebar-items v-bind:items="items"></v-sidebar>
-      </v-sidebar>
-      <v-content>
-        <v-container>
-          <router-view></router-view>
-        </v-container>
-      </v-content>
-    </main>
-  </v-app>
+  <div class="container">
+    <md-sidenav class="main-sidebar md-left md-fixed" ref="main-sidebar">
+      <md-toolbar class="vue-material-logo" md-theme="white">
+        <router-link exact to="/">
+          <span>Vue Material</span>
+        </router-link>
+      </md-toolbar>
+
+      
+      <div class="main-sidebar-links">
+        <md-list class="md-dense">
+          <md-list-item v-for="page in pages">
+            <router-link to="/">{{page.text}}</router-link>
+          </md-list-item>
+        </md-list>
+      </div>
+    </md-sidenav>
+    <transition name="md-router" appear>
+      <router-view></router-view>
+    </transition>
+  </div>
 </template>
 <script>
   import routeList from './routes'
@@ -25,21 +27,16 @@
   export default {
     data() {
       return {
-        items: routeList.menu
+        pages: routeList.menuPages
       }
     },
     mounted() {
-      this.$vuetify.init()
+      // this.$vuetify.init()
     }
   }
 
 </script>
 <style>
-  #app {
-    font-family: 'Avenir', Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    color: #2c3e50;
-  }
+
 
 </style>

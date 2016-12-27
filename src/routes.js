@@ -22,10 +22,10 @@ const routes = components.map(function (c) {
 
 export default {
   raw: routes,
-  menu: routes.map(function (m) {
+  menuPage: routes.map(function (m) {
     var data = m.component.data();
     return {
-      href: '#/' + data.path,
+      to: '#/' + data.path,
       text: data.title
     }
   })

@@ -17,6 +17,7 @@
     "moment": "^2.17.1",
     "moment-timezone": "^0.5.10",
     "vue": "^2.1.0",
+    "vue-material": "^0.5.2",
     "vue-moment": "^2.0.2",
     "vue-router": "^2.1.1",
     "vuex": "^2.1.1"
@@ -78,7 +79,6 @@
     "vue-loader": "^10.0.0",
     "vue-style-loader": "^1.0.0",
     "vue-template-compiler": "^2.1.0",
-    "vuetify": "^0.7.7",
     "webpack": "^1.13.2",
     "webpack-dev-middleware": "^1.8.3",
     "webpack-hot-middleware": "^2.12.2",

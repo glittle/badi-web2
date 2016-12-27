@@ -6,6 +6,6 @@ Vue.use(Router)
 import routeList from './routes'
 
 export default new Router({
-  //mode: 'history',
+  mode: 'hash',
   routes: routeList.raw
 })
